@@ -789,6 +789,7 @@
       pickTimeError:'Выбери время для каждой услуги',
       btnSending:'Записываем…',
       timeoutError:'сервер долго не отвечает',
+      partialFailNote:'Не получилось записать',
       noSlots:'На этот день свободного времени нет',
       slotTaken:'Это время только что заняли — выбери другое',
       bookingError:'Не получилось записать, попробуй ещё раз',
@@ -1461,10 +1462,24 @@
       const result = await createBookingRequest({
         action: 'book', name, phone, source: 'сайт', bookings: bookings
       });
-      if(result.success){
-        showSuccess(result.results || [], name, phone, categorySelections);
+      const allResults = result.results || [];
+      const succeeded = allResults.filter(r => r.success);
+      const failed = allResults.filter(r => !r.success);
+
+      if(succeeded.length > 0){
+        // показываем плашку по успешным категориям, даже если какие-то другие не прошли —
+        // те данные УЖЕ реально сохранились, прятать их от человека нельзя
+        showSuccess(succeeded, name, phone, categorySelections);
+        if(failed.length > 0){
+          const dict = STRINGS[currentLang];
+          const failedLabels = failed.map(f => dict['cat' + capitalize(f.category)] || f.category).join(', ');
+          const failNote = document.createElement('div');
+          failNote.className = 'modal-form-error';
+          failNote.style.marginTop = '10px';
+          failNote.textContent = dict.partialFailNote + ' (' + failedLabels + ')';
+          document.getElementById('success-list').after(failNote);
+        }
       } else {
-        const failed = (result.results || []).filter(r => !r.success);
         const takenCats = failed.filter(r => r.error === 'slot_taken').map(r => r.category);
         if(takenCats.length){
           const dict = STRINGS[currentLang];
