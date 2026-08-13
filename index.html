@@ -1427,15 +1427,18 @@
     const allSlotsPicked = missingSlotCats.length === 0;
     nameInput.classList.toggle('error', !name);
     phoneInput.classList.toggle('error', !phone);
+    // ВРЕМЕННАЯ ОТЛАДКА — показываю реальное состояние на момент нажатия,
+    // чтобы увидеть правду напрямую, а не гадать по скриншотам
+    const debugState = `[debug: name="${name}" phone="${phone}" cats=${JSON.stringify(cats)} selections=${JSON.stringify(categorySelections)}]`;
     if(!name || !phone){
-      formError.textContent = STRINGS[currentLang].formError;
+      formError.textContent = STRINGS[currentLang].formError + ' ' + debugState;
       formError.style.display = 'block';
       return;
     }
     if(!allSlotsPicked){
       const dict = STRINGS[currentLang];
       const missingLabels = missingSlotCats.map(c => dict['cat' + capitalize(c)] || c).join(', ');
-      formError.textContent = dict.pickTimeError + ' (' + missingLabels + ')';
+      formError.textContent = dict.pickTimeError + ' (' + missingLabels + ') ' + debugState;
       formError.style.display = 'block';
       return;
     }
