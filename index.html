@@ -1366,7 +1366,7 @@
         }
       }
     } catch(err){
-      formError.textContent = STRINGS[currentLang].bookingError;
+      formError.textContent = STRINGS[currentLang].bookingError + ' [' + (err && err.message ? err.message : err) + ']';
       formError.style.display = 'block';
     } finally {
       modalWa.disabled = false;
