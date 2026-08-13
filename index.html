@@ -1428,18 +1428,19 @@
     const allSlotsPicked = missingSlotCats.length === 0;
     nameInput.classList.toggle('error', !name);
     phoneInput.classList.toggle('error', !phone);
-    // ВРЕМЕННАЯ ОТЛАДКА — показываю реальное состояние на момент нажатия,
-    // чтобы увидеть правду напрямую, а не гадать по скриншотам
-    const debugState = `[debug: name="${name}" phone="${phone}" cats=${JSON.stringify(cats)} selections=${JSON.stringify(categorySelections)}]`;
+    // ВРЕМЕННАЯ ОТЛАДКА — показываю реальное состояние на момент нажатия
+    const debugState = `name="${name}" phone="${phone}" cats=${JSON.stringify(cats)} selections=${JSON.stringify(categorySelections)}`;
     if(!name || !phone){
-      formError.textContent = STRINGS[currentLang].formError + ' ' + debugState;
+      alert('НЕ ХВАТАЕТ ИМЕНИ/ТЕЛЕФОНА:\n' + debugState);
+      formError.textContent = STRINGS[currentLang].formError;
       formError.style.display = 'block';
       return;
     }
     if(!allSlotsPicked){
       const dict = STRINGS[currentLang];
       const missingLabels = missingSlotCats.map(c => dict['cat' + capitalize(c)] || c).join(', ');
-      formError.textContent = dict.pickTimeError + ' (' + missingLabels + ') ' + debugState;
+      alert('НЕ ВЫБРАНО ВРЕМЯ ДЛЯ: ' + missingLabels + '\n' + debugState);
+      formError.textContent = dict.pickTimeError + ' (' + missingLabels + ')';
       formError.style.display = 'block';
       return;
     }
@@ -1459,9 +1460,11 @@
     modalWa.style.opacity = '0.6';
     try {
       const bookings = buildBookingsArray();
+      alert('ОТПРАВЛЯЮ ЗАЯВКУ:\n' + JSON.stringify(bookings));
       const result = await createBookingRequest({
         action: 'book', name, phone, source: 'сайт', bookings: bookings
       });
+      alert('ОТВЕТ СЕРВЕРА:\n' + JSON.stringify(result));
       const allResults = result.results || [];
       const succeeded = allResults.filter(r => r.success);
       const failed = allResults.filter(r => !r.success);
@@ -1495,6 +1498,7 @@
         }
       }
     } catch(err){
+      alert('ОШИБКА ПРИ ОТПРАВКЕ:\n' + (err && err.stack ? err.stack : String(err)));
       const msg = err && err.name === 'AbortError' ? STRINGS[currentLang].timeoutError : (err && err.message ? err.message : err);
       formError.textContent = STRINGS[currentLang].bookingError + ' [' + msg + ']';
       formError.style.display = 'block';
