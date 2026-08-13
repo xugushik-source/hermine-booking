@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LULU — панель мастера</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ivory:#F7F0E6; --ivory-deep:#EFE0CE; --blush:#E9CCB9; --ink:#3B2A22;
+    --gold:#B8674C; --gold-bright:#C97D5D; --line:rgba(184,103,76,0.3);
+    --ok:#5B8A5B; --warn:#B5453A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Montserrat', sans-serif; background:var(--ivory); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding-bottom:24px;
+  }
+  header{ background:var(--ink); color:var(--ivory); padding:20px 18px 16px; text-align:center; }
+  header .kicker{ font-family:'Space Grotesk', sans-serif; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold-bright); }
+  header h1{ font-family:'Playfair Display', serif; font-size:22px; font-weight:700; margin-top:6px; }
+
+  .tabs{
+    position:sticky; top:0; z-index:20; display:flex; background:var(--ivory-deep);
+    border-bottom:1px solid var(--line); overflow-x:auto;
+  }
+  .tab-btn{
+    flex:1; min-width:110px; padding:13px 8px; text-align:center; background:none; border:none;
+    font-family:'Space Grotesk', sans-serif; font-size:12px; letter-spacing:0.02em; color:#8a7a6c; cursor:pointer;
+  }
+  .tab-btn.active{ color:var(--gold); border-bottom:2px solid var(--gold); font-weight:600; }
+
+  main{ max-width:640px; margin:0 auto; padding:18px 14px; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-family:'Space Grotesk', sans-serif; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color:#8a7a6c; margin-bottom:5px; }
+  .field input, .field textarea{ width:100%; border:1px solid var(--line); border-radius:4px; background:#fff; padding:10px 11px; font-family:'Montserrat', sans-serif; font-size:14px; color:var(--ink); }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--gold); }
+
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  .btn{ display:inline-block; padding:10px 16px; border-radius:4px; border:none; font-family:'Space Grotesk', sans-serif; font-size:12.5px; font-weight:600; cursor:pointer; text-align:center; }
+  .btn-primary{ background:var(--gold); color:var(--ivory); }
+  .btn-secondary{ background:#fff; border:1px solid var(--line); color:var(--ink); }
+  .btn-danger{ background:#fff; border:1px solid var(--warn); color:var(--warn); }
+  .btn-block{ display:block; width:100%; }
+  .btn:disabled{ opacity:0.5; }
+
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .chip{ padding:7px 13px; border-radius:14px; border:1px solid var(--line); background:#fff; font-family:'Space Grotesk', sans-serif; font-size:12px; cursor:pointer; }
+  .chip.active{ background:var(--gold); border-color:var(--gold); color:var(--ivory); }
+
+  .visit-card{ background:#fff; border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:5px; padding:14px; margin-bottom:10px; }
+  .visit-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .visit-time{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:15px; }
+  .visit-cat{ display:inline-block; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; color:var(--gold); background:rgba(184,103,76,0.1); padding:2px 8px; border-radius:8px; margin-left:8px; }
+  .visit-client{ font-family:'Playfair Display', serif; font-size:15px; margin-top:6px; }
+  .visit-phone{ font-size:12.5px; color:#8a7a6c; }
+  .visit-services{ font-size:12.5px; color:#5c4c3e; margin-top:6px; line-height:1.5; }
+  .visit-price{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:14px; margin-top:6px; }
+  .visit-badges{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .badge{ font-size:10.5px; padding:2px 8px; border-radius:8px; font-family:'Space Grotesk', sans-serif; }
+  .badge-draft{ background:#EFE0CE; color:var(--ink); }
+  .badge-done{ background:rgba(91,138,91,0.15); color:var(--ok); }
+  .badge-cancelled{ background:rgba(181,69,58,0.12); color:var(--warn); text-decoration:line-through; }
+  .badge-paid{ background:rgba(91,138,91,0.15); color:var(--ok); }
+  .badge-unpaid{ background:rgba(181,69,58,0.12); color:var(--warn); }
+
+  .visit-actions{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .visit-actions .btn{ flex:1; min-width:90px; }
+
+  .inline-form{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); display:none; }
+  .inline-form.open{ display:block; }
+
+  .slots-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin:8px 0; }
+  .slot-btn{ padding:8px 4px; border:1px solid var(--line); border-radius:4px; background:#fff; font-family:'Space Grotesk', sans-serif; font-size:11.5px; cursor:pointer; text-align:center; }
+  .slot-btn.selected{ background:var(--gold); border-color:var(--gold); color:var(--ivory); }
+  .slots-empty{ font-size:12px; color:#a89a83; grid-column:1/-1; }
+
+  .cat-group{ margin-bottom:16px; }
+  .cat-group-title{ font-family:'Space Grotesk', sans-serif; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+  .svc-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(184,103,76,0.12); font-size:13px; }
+  .svc-row label{ display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; }
+  .svc-price{ font-family:'Space Grotesk', sans-serif; font-weight:600; }
+
+  .empty-state{ text-align:center; color:#a89a83; font-size:13px; padding:30px 0; }
+  .api-warning{ background:rgba(181,69,58,0.08); border:1px solid rgba(181,69,58,0.3); color:var(--warn); font-size:12.5px; padding:10px 12px; border-radius:4px; margin-bottom:16px; }
+
+  .total-line{ font-family:'Space Grotesk', sans-serif; font-size:16px; font-weight:700; margin:10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">LULU Beauty Studio</div>
+  <h1>Панель мастера</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="today">Сегодня</button>
+  <button class="tab-btn" data-tab="all">Все записи</button>
+  <button class="tab-btn" data-tab="new">Новая запись</button>
+  <button class="tab-btn" data-tab="search">Поиск клиента</button>
+</div>
+
+<main>
+
+  <div id="api-warning-slot"></div>
+
+  <!-- ============ СЕГОДНЯ ============ -->
+  <div class="panel active" id="panel-today">
+    <div class="field"><input type="date" id="today-date"></div>
+    <div id="today-list"></div>
+  </div>
+
+  <!-- ============ ВСЕ ЗАПИСИ ============ -->
+  <div class="panel" id="panel-all">
+    <div class="chip-row" id="all-filter">
+      <div class="chip active" data-status="all">Все</div>
+      <div class="chip" data-status="черновик">Черновик</div>
+      <div class="chip" data-status="завершено">Завершено</div>
+      <div class="chip" data-status="отменено">Отменено</div>
+    </div>
+    <div id="all-list"></div>
+  </div>
+
+  <!-- ============ НОВАЯ ЗАПИСЬ (по звонку) ============ -->
+  <div class="panel" id="panel-new">
+    <div class="field"><label>Имя клиента</label><input type="text" id="new-name"></div>
+    <div class="field"><label>Телефон</label><input type="tel" id="new-phone" placeholder="995..."></div>
+    <div id="new-services"></div>
+    <div class="total-line">Итого: <span id="new-total">0₾</span></div>
+    <div id="new-cat-slots"></div>
+    <div class="field" id="new-error" style="display:none; color:var(--warn); font-size:12.5px;"></div>
+    <button class="btn btn-primary btn-block" id="new-submit" type="button">Записать</button>
+  </div>
+
+  <!-- ============ ПОИСК КЛИЕНТА ============ -->
+  <div class="panel" id="panel-search">
+    <div class="field" style="display:flex; gap:8px;">
+      <input type="tel" id="search-phone" placeholder="Телефон клиента" style="flex:1;">
+      <button class="btn btn-primary" id="search-btn" type="button">Найти</button>
+    </div>
+    <div id="search-result"></div>
+  </div>
+
+</main>
+
+<script>
+  // ЗАМЕНИ на тот же URL веб-приложения Apps Script, что и в index.html
+  const BOOKING_API_URL = 'https://script.google.com/macros/s/AKfycbxQPmSLVvhVZczAnK-aWphZp28PbhqqQSo60vrq7EwfCkuxZHCaWiAQVYX5kMzJZmyz/exec';
+
+  const CATEGORY_LABELS = { makeup:'Макияж', epil:'Эпиляция', nails:'Маникюр', hair:'Волосы' };
+
+  const SERVICES = [
+    { id:'no-lashes', name:'Макияж без ресниц', price:40, category:'makeup' },
+    { id:'with-lashes', name:'Макияж с ресницами', price:50, category:'makeup' },
+    { id:'wedding', name:'Свадебный макияж', price:70, category:'makeup' },
+    { id:'falselashes', name:'Накладные ресницы', price:15, category:'makeup' },
+    { id:'brows', name:'Коррекция бровей', price:10, category:'makeup' },
+    { id:'epil-legs', name:'Ноги', price:35, category:'epil' },
+    { id:'epil-arms', name:'Руки', price:25, category:'epil' },
+    { id:'epil-bikini-deep', name:'Глубокое бикини', price:25, category:'epil' },
+    { id:'epil-underarms', name:'Подмышки', price:10, category:'epil' },
+    { id:'epil-bikini-shallow', name:'Поверхностное бикини', price:15, category:'epil' },
+    { id:'epil-fullbody', name:'Тело целиком', price:100, category:'epil' },
+    { id:'nails-no-coating', name:'Маникюр без покрытия', price:15, category:'nails' },
+    { id:'nails-gel-polish', name:'Гель-лак', price:30, category:'nails' },
+    { id:'nails-base-coating', name:'Маникюр с базовым покрытием', price:25, category:'nails' },
+    { id:'nails-hard-gel', name:'Укрепление жёстким гелем', price:35, category:'nails' },
+    { id:'nails-extension', name:'Наращивание ногтей', price:60, category:'nails' },
+    { id:'nails-extension-correction', name:'Коррекция наращённых ногтей', price:40, category:'nails' },
+    { id:'nails-design', name:'Дизайн ногтей', price:5, category:'nails' },
+    { id:'hair-cut-short', name:'Стрижка короткая', price:15, category:'hair' },
+    { id:'hair-cut-medium', name:'Стрижка средняя длина', price:20, category:'hair' },
+    { id:'hair-style', name:'Причёска', price:40, category:'hair' },
+    { id:'hair-blowdry', name:'Укладка', price:40, category:'hair' },
+    { id:'hair-wedding', name:'Свадебная причёска', price:70, category:'hair' },
+    { id:'hair-keratin-30', name:'Кератин 30см', price:100, category:'hair' },
+    { id:'hair-keratin-35', name:'Кератин 35см', price:110, category:'hair' },
+    { id:'hair-keratin-40', name:'Кератин 40см', price:120, category:'hair' },
+    { id:'hair-keratin-45', name:'Кератин 45см', price:130, category:'hair' },
+    { id:'hair-keratin-50', name:'Кератин 50см', price:140, category:'hair' },
+    { id:'hair-keratin-55', name:'Кератин 55см', price:150, category:'hair' },
+    { id:'hair-keratin-60', name:'Кератин 60см', price:160, category:'hair' },
+    { id:'hair-lightening-30', name:'Осветление волос 30см', price:80, category:'hair' },
+    { id:'hair-lightening-40', name:'Осветление волос 40см', price:100, category:'hair' },
+    { id:'hair-lightening-50', name:'Осветление волос 50см', price:120, category:'hair' },
+    { id:'hair-lightening-60', name:'Осветление волос 60см', price:140, category:'hair' },
+    { id:'hair-lightening-70', name:'Осветление волос 70см', price:160, category:'hair' },
+    { id:'hair-coloring', name:'Окрашивание волос (от)', price:15, category:'hair' },
+  ];
+
+  function discountRate(count){
+    if(count >= 5) return 0.20;
+    if(count === 4) return 0.15;
+    if(count === 3) return 0.10;
+    if(count === 2) return 0.05;
+    return 0;
+  }
+
+  function apiReady(){ return BOOKING_API_URL.indexOf('REPLACE_WITH') !== 0; }
+
+  if(!apiReady()){
+    document.getElementById('api-warning-slot').innerHTML =
+      '<div class="api-warning">Apps Script ещё не подключён — вставь ссылку в BOOKING_API_URL вверху файла, панель пока не сможет ни читать, ни писать данные.</div>';
+  }
+
+  async function apiGet(params){
+    const url = `${BOOKING_API_URL}?${new URLSearchParams(params).toString()}`;
+    const res = await fetch(url);
+    return res.json();
+  }
+  async function apiPost(payload){
+    const res = await fetch(BOOKING_API_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  // ---------- TABS ----------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------- VISIT CARD RENDER ----------
+  function visitCardHTML(v){
+    const statusBadge = v.status === 'завершено' ? '<span class="badge badge-done">завершено</span>'
+      : v.status === 'отменено' ? '<span class="badge badge-cancelled">отменено</span>'
+      : '<span class="badge badge-draft">черновик</span>';
+    const paidBadge = v.paid === 'оплачено' ? '<span class="badge badge-paid">оплачено</span>' : '<span class="badge badge-unpaid">не оплачено</span>';
+    const cancelled = v.status === 'отменено';
+    return `
+      <div class="visit-card" data-id="${v.id}" data-category="${v.category}">
+        <div class="visit-top">
+          <div>
+            <span class="visit-time">${v.datetime}</span>
+            <span class="visit-cat">${v.category}</span>
+          </div>
+        </div>
+        <div class="visit-client">${escapeHtml(v.phone)}</div>
+        <div class="visit-services">${escapeHtml(v.services || '')}</div>
+        <div class="visit-price">${v.total}₾${v.discount > 0 ? ` <span style="color:#8a7a6c;font-weight:400;font-size:12px;">(скидка ${v.discount}₾)</span>` : ''}</div>
+        <div class="visit-badges">${statusBadge}${paidBadge}</div>
+        ${cancelled ? '' : `
+        <div class="visit-actions">
+          <button class="btn btn-secondary act-paid" type="button">${v.paid === 'оплачено' ? 'Не оплачено' : 'Оплачено'}</button>
+          <button class="btn btn-secondary act-complete" type="button">Завершить</button>
+          <button class="btn btn-secondary act-reschedule" type="button">Перенести</button>
+          <button class="btn btn-danger act-cancel" type="button">Отменить</button>
+        </div>
+        <div class="inline-form" id="form-complete-${v.id}">
+          <div class="field"><label>Заметка</label><textarea rows="2"></textarea></div>
+          <button class="btn btn-primary btn-block confirm-complete" type="button">Подтвердить завершение</button>
+        </div>
+        <div class="inline-form" id="form-reschedule-${v.id}">
+          <div class="field"><label>Новая дата</label><input type="date" class="reschedule-date"></div>
+          <div class="slots-grid reschedule-slots"></div>
+          <button class="btn btn-primary btn-block confirm-reschedule" type="button" disabled>Подтвердить перенос</button>
+        </div>
+        `}
+      </div>
+    `;
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function wireVisitCard(cardEl, onChanged){
+    const id = cardEl.dataset.id;
+    const category = cardEl.dataset.category;
+
+    const paidBtn = cardEl.querySelector('.act-paid');
+    if(paidBtn) paidBtn.addEventListener('click', async () => {
+      const currentlyPaid = paidBtn.textContent.trim() === 'Не оплачено';
+      paidBtn.disabled = true;
+      await apiPost({ action:'setPaid', visitId:id, paid: !currentlyPaid });
+      onChanged();
+    });
+
+    const completeBtn = cardEl.querySelector('.act-complete');
+    const completeForm = cardEl.querySelector('#form-complete-' + id);
+    if(completeBtn) completeBtn.addEventListener('click', () => completeForm.classList.toggle('open'));
+    const confirmComplete = cardEl.querySelector('.confirm-complete');
+    if(confirmComplete) confirmComplete.addEventListener('click', async () => {
+      const note = completeForm.querySelector('textarea').value.trim();
+      confirmComplete.disabled = true;
+      await apiPost({ action:'complete', visitId:id, note });
+      onChanged();
+    });
+
+    const rescheduleBtn = cardEl.querySelector('.act-reschedule');
+    const rescheduleForm = cardEl.querySelector('#form-reschedule-' + id);
+    if(rescheduleBtn) rescheduleBtn.addEventListener('click', () => rescheduleForm.classList.toggle('open'));
+    let pickedTime = null;
+    const rescheduleDate = cardEl.querySelector('.reschedule-date');
+    const rescheduleSlots = cardEl.querySelector('.reschedule-slots');
+    const confirmReschedule = cardEl.querySelector('.confirm-reschedule');
+    if(rescheduleDate) rescheduleDate.addEventListener('change', async () => {
+      pickedTime = null;
+      confirmReschedule.disabled = true;
+      rescheduleSlots.innerHTML = '<div class="slots-empty">Загружаю…</div>';
+      const data = await apiGet({ action:'slots', date: rescheduleDate.value, category });
+      rescheduleSlots.innerHTML = '';
+      (data.slots || []).forEach(t => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'slot-btn'; b.textContent = t;
+        b.addEventListener('click', () => {
+          pickedTime = t;
+          rescheduleSlots.querySelectorAll('.slot-btn').forEach(x => x.classList.remove('selected'));
+          b.classList.add('selected');
+          confirmReschedule.disabled = false;
+        });
+        rescheduleSlots.appendChild(b);
+      });
+      if(!(data.slots || []).length) rescheduleSlots.innerHTML = '<div class="slots-empty">Нет свободного времени</div>';
+    });
+    if(confirmReschedule) confirmReschedule.addEventListener('click', async () => {
+      if(!pickedTime || !rescheduleDate.value) return;
+      confirmReschedule.disabled = true;
+      const res = await apiPost({ action:'reschedule', visitId:id, date: rescheduleDate.value, time: pickedTime });
+      if(res.success) onChanged();
+      else { confirmReschedule.disabled = false; alert('Не получилось: ' + (res.error || 'ошибка')); }
+    });
+
+    const cancelBtn = cardEl.querySelector('.act-cancel');
+    if(cancelBtn) cancelBtn.addEventListener('click', async () => {
+      if(!confirm('Точно отменить запись?')) return;
+      cancelBtn.disabled = true;
+      await apiPost({ action:'cancel', visitId:id });
+      onChanged();
+    });
+  }
+
+  function renderVisitList(container, visits, emptyText){
+    if(!visits.length){
+      container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+      return;
+    }
+    container.innerHTML = visits.map(visitCardHTML).join('');
+    container.querySelectorAll('.visit-card').forEach(card => {
+      wireVisitCard(card, () => reloadCurrentTab());
+    });
+  }
+
+  function reloadCurrentTab(){
+    const active = document.querySelector('.tab-btn.active').dataset.tab;
+    if(active === 'today') loadToday();
+    if(active === 'all') loadAll();
+    if(active === 'search'){ /* no-op, user re-searches manually */ }
+  }
+
+  // ---------- СЕГОДНЯ ----------
+  const todayDateInput = document.getElementById('today-date');
+  function todayISO(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  todayDateInput.value = todayISO();
+  async function loadToday(){
+    if(!apiReady()) return;
+    const list = document.getElementById('today-list');
+    list.innerHTML = '<div class="empty-state">Загружаю…</div>';
+    const data = await apiGet({ action:'day', date: todayDateInput.value });
+    renderVisitList(list, data.visits || [], 'На этот день записей нет');
+  }
+  todayDateInput.addEventListener('change', loadToday);
+
+  // ---------- ВСЕ ЗАПИСИ ----------
+  let allVisitsCache = [];
+  let allFilter = 'all';
+  async function loadAll(){
+    if(!apiReady()) return;
+    const list = document.getElementById('all-list');
+    list.innerHTML = '<div class="empty-state">Загружаю…</div>';
+    const data = await apiGet({ action:'all' });
+    allVisitsCache = data.visits || [];
+    applyAllFilter();
+  }
+  function applyAllFilter(){
+    const list = document.getElementById('all-list');
+    const filtered = allFilter === 'all' ? allVisitsCache : allVisitsCache.filter(v => v.status === allFilter);
+    renderVisitList(list, filtered, 'Записей нет');
+  }
+  document.getElementById('all-filter').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    document.querySelectorAll('#all-filter .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    allFilter = chip.dataset.status;
+    applyAllFilter();
+  });
+
+  // ---------- НОВАЯ ЗАПИСЬ ----------
+  const newState = {};
+  SERVICES.forEach(s => newState[s.id] = false);
+  const newServicesEl = document.getElementById('new-services');
+  const catOrder = ['makeup','epil','nails','hair'];
+  catOrder.forEach(cat => {
+    const group = document.createElement('div');
+    group.className = 'cat-group';
+    group.innerHTML = `<div class="cat-group-title">${CATEGORY_LABELS[cat]}</div>`;
+    SERVICES.filter(s => s.category === cat).forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'svc-row';
+      row.innerHTML = `<label><input type="checkbox" data-id="${s.id}"> ${s.name}</label><span class="svc-price">${s.price}₾</span>`;
+      row.querySelector('input').addEventListener('change', (e) => {
+        newState[s.id] = e.target.checked;
+        recalcNew();
+      });
+      group.appendChild(row);
+    });
+    newServicesEl.appendChild(group);
+  });
+
+  let newCategorySelections = {};
+  function newCartCategories(){
+    const present = new Set(SERVICES.filter(s => newState[s.id]).map(s => s.category));
+    return catOrder.filter(c => present.has(c));
+  }
+  function recalcNew(){
+    const selected = SERVICES.filter(s => newState[s.id]);
+    const subtotal = selected.reduce((sum,s)=>sum+s.price,0);
+    const rate = discountRate(selected.length);
+    const total = subtotal - Math.round(subtotal*rate);
+    document.getElementById('new-total').textContent = total + '₾' + (rate>0 ? ` (скидка ${Math.round(rate*100)}%)` : '');
+    renderNewCatSlots();
+  }
+  function renderNewCatSlots(){
+    const container = document.getElementById('new-cat-slots');
+    const cats = newCartCategories();
+    container.innerHTML = '';
+    newCategorySelections = {};
+    cats.forEach(cat => {
+      const block = document.createElement('div');
+      block.className = 'field';
+      block.innerHTML = `
+        <label>${CATEGORY_LABELS[cat]} — дата</label>
+        <input type="date" class="new-cat-date">
+        <div class="slots-grid new-cat-slots-grid" style="margin-top:8px;"></div>
+      `;
+      const dateEl = block.querySelector('.new-cat-date');
+      const gridEl = block.querySelector('.new-cat-slots-grid');
+      dateEl.min = todayISO(); dateEl.value = todayISO();
+      newCategorySelections[cat] = { date: dateEl.value, time: null };
+      async function loadNewSlots(){
+        newCategorySelections[cat].time = null;
+        gridEl.innerHTML = '<div class="slots-empty">Загружаю…</div>';
+        if(!apiReady()){ gridEl.innerHTML = '<div class="slots-empty">API не подключён</div>'; return; }
+        const data = await apiGet({ action:'slots', date: dateEl.value, category: cat });
+        gridEl.innerHTML = '';
+        (data.slots || []).forEach(t => {
+          const b = document.createElement('button');
+          b.type='button'; b.className='slot-btn'; b.textContent=t;
+          b.addEventListener('click', () => {
+            newCategorySelections[cat].time = t;
+            gridEl.querySelectorAll('.slot-btn').forEach(x=>x.classList.remove('selected'));
+            b.classList.add('selected');
+          });
+          gridEl.appendChild(b);
+        });
+        if(!(data.slots||[]).length) gridEl.innerHTML = '<div class="slots-empty">Нет свободного времени</div>';
+      }
+      dateEl.addEventListener('change', () => { newCategorySelections[cat].date = dateEl.value; loadNewSlots(); });
+      container.appendChild(block);
+      loadNewSlots();
+    });
+  }
+
+  document.getElementById('new-submit').addEventListener('click', async () => {
+    const name = document.getElementById('new-name').value.trim();
+    const phone = document.getElementById('new-phone').value.trim();
+    const errEl = document.getElementById('new-error');
+    const cats = newCartCategories();
+    const allPicked = cats.length > 0 && cats.every(c => newCategorySelections[c] && newCategorySelections[c].time);
+    if(!name || !phone || !allPicked){
+      errEl.textContent = 'Заполни имя, телефон, выбери услуги и время для каждой категории';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    const bookings = cats.map(cat => {
+      const items = SERVICES.filter(s => newState[s.id] && s.category === cat);
+      const subtotal = items.reduce((sum,s)=>sum+s.price,0);
+      const rate = discountRate(SERVICES.filter(s=>newState[s.id]).length);
+      const discount = Math.round(subtotal*rate);
+      return {
+        category: cat, date: newCategorySelections[cat].date, time: newCategorySelections[cat].time,
+        services: items.map(s=>s.name).join(', '), total: subtotal-discount, discount
+      };
+    });
+    const submitBtn = document.getElementById('new-submit');
+    submitBtn.disabled = true;
+    const res = await apiPost({ action:'book', name, phone, source:'звонок', bookings });
+    submitBtn.disabled = false;
+    if(res.success){
+      alert('Запись создана');
+      SERVICES.forEach(s => newState[s.id] = false);
+      document.querySelectorAll('#new-services input[type=checkbox]').forEach(c => c.checked = false);
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-phone').value = '';
+      recalcNew();
+    } else {
+      errEl.textContent = 'Не получилось: ' + (res.error || JSON.stringify(res.results));
+      errEl.style.display = 'block';
+    }
+  });
+
+  // ---------- ПОИСК КЛИЕНТА ----------
+  document.getElementById('search-btn').addEventListener('click', async () => {
+    const phone = document.getElementById('search-phone').value.trim();
+    const result = document.getElementById('search-result');
+    if(!phone) return;
+    result.innerHTML = '<div class="empty-state">Ищу…</div>';
+    const data = await apiGet({ action:'client', phone });
+    if(!data.client){
+      result.innerHTML = '<div class="empty-state">Клиент с таким номером не найден</div>';
+      return;
+    }
+    const header = `<div class="visit-card"><div class="visit-client">${escapeHtml(data.client.name)}</div><div class="visit-phone">${escapeHtml(data.client.phone)}</div></div>`;
+    result.innerHTML = header;
+    const listWrap = document.createElement('div');
+    result.appendChild(listWrap);
+    renderVisitList(listWrap, data.visits || [], 'Записей пока не было');
+  });
+
+  // ---------- INIT ----------
+  loadToday();
+</script>
+</body>
+</html>
