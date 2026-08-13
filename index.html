@@ -411,6 +411,9 @@
   .modal-sheet{
     width:100%;
     max-width:520px;
+    max-height:88vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
     background:var(--ivory);
     border-radius:14px 14px 0 0;
     padding:22px 20px 28px;
@@ -692,9 +695,9 @@
       </div>
       <div class="modal-summary" id="modal-summary"></div>
       <div class="modal-form">
+        <div id="category-slots-container"></div>
         <input type="text" id="client-name" class="modal-input" data-i18n-placeholder="phName" autocomplete="name">
         <input type="tel" id="client-phone" class="modal-input" data-i18n-placeholder="phPhone" autocomplete="tel">
-        <div id="category-slots-container"></div>
         <div class="modal-form-error" id="modal-form-error" data-i18n="formError" style="display:none;"></div>
       </div>
       <div class="modal-actions">
@@ -754,6 +757,7 @@
       apiNotReady:'Запись по времени скоро заработает — пока свяжись напрямую',
       loadingSlots:'Загружаю свободное время…',
       slotsError:'Не удалось загрузить время, попробуй ещё раз',
+      retryLoad:'Попробовать снова',
       noSlots:'На этот день свободного времени нет',
       slotTaken:'Это время только что заняли — выбери другое',
       bookingError:'Не получилось записать, попробуй ещё раз',
@@ -807,6 +811,7 @@
       apiNotReady:'ჩაწერა დროის მიხედვით მალე ჩაირთვება — ჯერჯერობით დაგვიკავშირდი პირდაპირ',
       loadingSlots:'იტვირთება თავისუფალი დრო…',
       slotsError:'ვერ ჩაიტვირთა დრო, სცადე თავიდან',
+      retryLoad:'სცადე თავიდან',
       noSlots:'ამ დღეს თავისუფალი დრო არ არის',
       slotTaken:'ეს დრო ახლახან დაიკავეს — აირჩიე სხვა',
       bookingError:'ჩაწერა ვერ მოხერხდა, სცადე თავიდან',
@@ -860,6 +865,7 @@
       apiNotReady:'Ժամանակացույցով գրանցումը շուտով կաշխատի — առայժմ գրիր ուղղակիորեն',
       loadingSlots:'Բեռնվում է ազատ ժամանակը…',
       slotsError:'Չհաջողվեց բեռնել ժամանակը, փորձիր նորից',
+      retryLoad:'Փորձել կրկին',
       noSlots:'Այս օրը ազատ ժամ չկա',
       slotTaken:'Այս ժամը հենց նոր զբաղեցվեց — ընտրիր ուրիշը',
       bookingError:'Չհաջողվեց գրանցվել, փորձիր նորից',
@@ -1179,12 +1185,27 @@
     }
     gridEl.innerHTML = `<div class="slots-empty" data-i18n="loadingSlots"></div>`;
     applyStrings();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 сек — Apps Script иногда долго стартует
     try {
-      const res = await fetch(`${BOOKING_API_URL}?action=slots&date=${dateStr}&category=${category}`);
+      const res = await fetch(`${BOOKING_API_URL}?action=slots&date=${dateStr}&category=${category}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await res.json();
       renderSlotsFor(category, data.slots || [], gridEl);
     } catch(err){
-      gridEl.innerHTML = `<div class="slots-empty" data-i18n="slotsError"></div>`;
+      clearTimeout(timeoutId);
+      gridEl.innerHTML = '';
+      const errEl = document.createElement('div');
+      errEl.className = 'slots-empty';
+      errEl.setAttribute('data-i18n', 'slotsError');
+      gridEl.appendChild(errEl);
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.className = 'slot-btn';
+      retryBtn.style.gridColumn = '1/-1';
+      retryBtn.setAttribute('data-i18n', 'retryLoad');
+      retryBtn.addEventListener('click', () => loadSlotsFor(category, dateStr, gridEl));
+      gridEl.appendChild(retryBtn);
       applyStrings();
     }
   }
@@ -1213,10 +1234,11 @@
     });
   }
 
-  function renderCategorySlotPickers(){
+  async function renderCategorySlotPickers(){
     catSlotsContainer.innerHTML = '';
     categorySelections = {};
     const cats = cartCategories();
+    const blocks = [];
     cats.forEach(cat => {
       const block = document.createElement('div');
       block.className = 'cat-slot-block';
@@ -1237,8 +1259,14 @@
         loadSlotsFor(cat, dateEl.value, gridEl);
       });
       catSlotsContainer.appendChild(block);
-      loadSlotsFor(cat, dateEl.value, gridEl);
+      blocks.push({ cat, dateEl, gridEl });
     });
+    // грузим категории ПО ОЧЕРЕДИ, не разом — Apps Script плохо тянет
+    // несколько одновременных запросов, параллельная загрузка приводила
+    // к долгому зависанию или незавершённой загрузке
+    for(const b of blocks){
+      await loadSlotsFor(b.cat, b.dateEl.value, b.gridEl);
+    }
   }
 
   function openModal(){
