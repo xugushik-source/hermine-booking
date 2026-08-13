@@ -1490,7 +1490,7 @@
           // остальные выбранные времена остаются как были, повторять всё заново не нужно
           takenCats.forEach(cat => refreshCategorySlot(cat));
         } else {
-          formError.textContent = STRINGS[currentLang].bookingError;
+          formError.textContent = STRINGS[currentLang].bookingError + ' [' + JSON.stringify(allResults) + ']';
           formError.style.display = 'block';
         }
       }
